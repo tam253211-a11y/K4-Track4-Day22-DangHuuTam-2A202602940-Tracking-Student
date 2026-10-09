@@ -20,10 +20,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import List
 
 PRACTICE_VIDEO = "video_1"
 
@@ -91,6 +93,50 @@ def stage(trackeval_root: Path, lab_data_root: Path, submission: Path, run_name:
     shutil.copy(submission, sub_dst / f"{PRACTICE_VIDEO}.txt")
 
 
+def build_trackeval_cmd(
+    python: str, trackeval_root: Path, run_name: str, benchmark: str, split: str
+) -> List[str]:
+    """Dựng lệnh chạy TrackEval trong tiến trình con đã vá ``np.float`` / ``np.int``.
+
+    Vá numpy ở tiến trình cha không có tác dụng với tiến trình con, nên lệnh
+    vá numpy trước rồi mới chạy ``run_mot_challenge.py`` bằng ``runpy``.
+
+    Args:
+        python: Đường dẫn trình thông dịch Python.
+        trackeval_root: Thư mục gốc bản clone TrackEval.
+        run_name: Tên lần chấm đã stage.
+        benchmark: Tên benchmark TrackEval.
+        split: Nhánh dữ liệu, thường là ``train``.
+
+    Returns:
+        Danh sách tham số cho ``subprocess.run``.
+    """
+    script = trackeval_root / "scripts" / "run_mot_challenge.py"
+    bootstrap = (
+        "import sys, runpy\n"
+        "import numpy as np\n"
+        "if not hasattr(np, 'float'): np.float = float\n"
+        "if not hasattr(np, 'int'): np.int = int\n"
+        "script = sys.argv[1]\n"
+        "sys.argv = sys.argv[1:]\n"
+        "runpy.run_path(script, run_name='__main__')\n"
+    )
+    return [
+        python,
+        "-c",
+        bootstrap,
+        str(script),
+        "--GT_FOLDER", str(trackeval_root / "data" / "gt" / "mot_challenge"),
+        "--TRACKERS_FOLDER", str(trackeval_root / "data" / "trackers" / "mot_challenge"),
+        "--BENCHMARK", benchmark,
+        "--SPLIT_TO_EVAL", split,
+        "--SEQ_INFO", PRACTICE_VIDEO,
+        "--TRACKERS_TO_EVAL", run_name,
+        "--METRICS", "HOTA", "CLEAR", "Identity",
+        "--USE_PARALLEL", "False",
+    ]
+
+
 def run_trackeval(trackeval_root: Path, run_name: str, benchmark: str, split: str) -> None:
     """Gọi script chấm của TrackEval, chỉ một video luyện.
 
@@ -103,20 +149,11 @@ def run_trackeval(trackeval_root: Path, run_name: str, benchmark: str, split: st
     Raises:
         subprocess.CalledProcessError: Khi TrackEval thoát với mã khác 0.
     """
-    cmd = [
-        sys.executable,
-        str(trackeval_root / "scripts" / "run_mot_challenge.py"),
-        "--GT_FOLDER", str(trackeval_root / "data" / "gt" / "mot_challenge"),
-        "--TRACKERS_FOLDER", str(trackeval_root / "data" / "trackers" / "mot_challenge"),
-        "--BENCHMARK", benchmark,
-        "--SPLIT_TO_EVAL", split,
-        "--SEQ_INFO", PRACTICE_VIDEO,
-        "--TRACKERS_TO_EVAL", run_name,
-        "--METRICS", "HOTA", "CLEAR", "Identity",
-        "--USE_PARALLEL", "False",
-    ]
-    print("Đang chấm video luyện:\n  " + " ".join(cmd) + "\n")
-    subprocess.run(cmd, check=True)
+    cmd = build_trackeval_cmd(sys.executable, trackeval_root, run_name, benchmark, split)
+    print(f"Đang chấm video luyện: {run_name} ({benchmark}-{split})\n")
+    # UTF-8 để TrackEval in / ghi log được đường dẫn có dấu tiếng Việt trên Windows.
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    subprocess.run(cmd, check=True, env=env)
 
 
 def main() -> None:
