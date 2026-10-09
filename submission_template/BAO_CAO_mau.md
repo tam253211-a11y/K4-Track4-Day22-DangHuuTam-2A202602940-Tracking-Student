@@ -1,6 +1,6 @@
 # Báo cáo lab: chọn tracker cho 5 video
 
-**Nhóm:** ………………………… **Thành viên:** Đặng Hữu Tâm (2A202602940), …………………………
+**Nhóm:** Làm cá nhân (1 người) **Thành viên:** Đặng Hữu Tâm (2A202602940)
 
 Detector cố định: `yolo26n.pt`, ảnh 640 px, Re-ID `osnet_x0_25_msmt17`. Không đổi các mục này trong bài nộp chính.
 
@@ -67,7 +67,7 @@ Các cấu hình đã thử trên `video_1` (đủ 600 frame, chấm bằng Trac
 
 `video_2` đến `video_5` không có nhãn trong gói lab. Không điền số cho các video đó.
 
-Với video không nhãn, nhóm so cấu hình bằng file kết quả (số ID, số track ngắn hơn 10 frame, số lần một track bị đứt rồi nối lại) rồi xem frame có vẽ ID. Đây chỉ là đếm trên output, không phải HOTA / MOTA / IDF1. Số liệu từng lượt thử nằm trong `runs/thu/ket_qua.jsonl`.
+Với video không nhãn, em so cấu hình bằng file kết quả (số ID, số track ngắn hơn 10 frame, số lần một track bị đứt rồi nối lại) rồi xem frame có vẽ ID. Đây chỉ là đếm trên output, không phải HOTA / MOTA / IDF1.
 
 ## 3. Phân tích
 
@@ -77,8 +77,8 @@ Với video không nhãn, nhóm so cấu hình bằng file kết quả (số ID,
 
 **video_5 — camera trên xe bus: BoT-SORT nhờ bù chuyển động camera.** Khi xe rẽ, mọi người trong ảnh đồng loạt trượt ngang dù họ đứng yên; Kalman của ByteTrack hiểu đó là người đang chạy và đoán sai vị trí. BoT-SORT ước lượng chuyển động của cả khung hình (GMC) rồi trừ đi trước khi ghép, nên người phụ nữ đeo kính giữ ID 125 dù trượt từ giữa ra mép trái trong 20 frame. Số "track đứt" của ByteTrack thấp hơn chỉ vì nó bám ít người hơn (~2,8 so với 4,1 hộp/frame) — phải xem video mới thấy điều này.
 
-**Giả thuyết bị bác.** Ở video_4 nhóm đoán bóng phản chiếu trên sàn và kính sẽ tạo hộp giả nên cần `conf` cao; thực tế detector không nhầm bóng thành người, và `conf` 0.15 còn bắt thêm người thật. Camera tiến chậm, mọi người đi cùng chiều nên chuyển động khá tuyến tính, ByteTrack đủ dùng. Ở video_3 nhóm đoán Re-ID sẽ thắng; thực tế StrongSORT giữ được một trường hợp mà ByteTrack hoán đổi ID, nhưng tổng thể lại tạo nhiều ID vụn hơn — ảnh 640×480, người cắt ngang sát camera khiến crop ngoại hình bị mờ và che khuất, Re-ID không đủ tin cậy.
+**Giả thuyết bị bác.** Ở video_4 em đoán bóng phản chiếu trên sàn và kính sẽ tạo hộp giả nên cần `conf` cao; thực tế detector không nhầm bóng thành người, và `conf` 0.15 còn bắt thêm người thật. Camera tiến chậm, mọi người đi cùng chiều nên chuyển động khá tuyến tính, ByteTrack đủ dùng. Ở video_3 em đoán Re-ID sẽ thắng; thực tế StrongSORT giữ được một trường hợp mà ByteTrack hoán đổi ID, nhưng tổng thể lại tạo nhiều ID vụn hơn — ảnh 640×480, người cắt ngang sát camera khiến crop ngoại hình bị mờ và che khuất, Re-ID không đủ tin cậy.
 
 ## 4. Nếu có thêm thời gian
 
-Nhóm sẽ thử quét `conf` / `iou` cho BoT-SORT trên video_5 và quét `iou` ở video_2–video_4 (máy chỉ có CPU nên đã bớt lượt quét ở các video không nhãn). Ngoài ra muốn xem kỹ các frame đổi ID ở video_3 để biết lỗi do che khuất hay do fps thấp, và thử tăng `track_buffer` của tracker (phần mở rộng, không thuộc bài nộp chính).
+Em sẽ thử quét `conf` / `iou` cho BoT-SORT trên video_5 và quét `iou` ở video_2–video_4 (máy chỉ có CPU nên đã bớt lượt quét ở các video không nhãn). Ngoài ra em muốn xem kỹ các frame đổi ID ở video_3 để biết lỗi do che khuất hay do fps thấp, và thử tăng `track_buffer` của tracker (phần mở rộng, không thuộc bài nộp chính).
